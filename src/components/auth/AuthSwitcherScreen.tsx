@@ -52,8 +52,8 @@ export const AuthSwitcherScreen: React.FC<AuthSwitcherScreenProps> = ({ onSelect
               )}
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-white">Dr. Rajesh Nair</h3>
-              <div className="text-xs text-slate-400 mt-0.5">Apex Institute of Technology (Pune)</div>
+              <h3 className="font-extrabold text-base text-white">Mrutyunjya Dash</h3>
+              <div className="text-xs text-slate-400 mt-0.5">Apex Institute of Technology · Placement & Career Services</div><div className="text-[10px] text-slate-500 mt-1">Mrutyunjya Dash · tpo@campuslink.local · +91 98765 10001</div>
             </div>
             <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 space-y-1">
               <div>• <strong>Access Scope:</strong> Apex Students & Jobs Only</div>
@@ -90,8 +90,8 @@ export const AuthSwitcherScreen: React.FC<AuthSwitcherScreenProps> = ({ onSelect
               )}
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-white">Dr. Sunita Kulkarni</h3>
-              <div className="text-xs text-slate-400 mt-0.5">Metro University of Engineering (BLR)</div>
+              <h3 className="font-extrabold text-base text-white">Sisira Kanta Padhi</h3>
+              <div className="text-xs text-slate-400 mt-0.5">Metro University of Engineering · Training & Placement</div><div className="text-[10px] text-slate-500 mt-1">Sisira Kanta Padhi · tpo2@campuslink.local · +91 98765 10002</div>
             </div>
             <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 space-y-1">
               <div>• <strong>Access Scope:</strong> Metro Univ Students & Jobs Only</div>
@@ -128,8 +128,8 @@ export const AuthSwitcherScreen: React.FC<AuthSwitcherScreenProps> = ({ onSelect
               )}
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-white">Samantha Vance</h3>
-              <div className="text-xs text-slate-400 mt-0.5">CampusLink Platform Operations</div>
+              <h3 className="font-extrabold text-base text-white">Ronali Mohanty</h3>
+              <div className="text-xs text-slate-400 mt-0.5">CampusLink Platform Operations · Global Administration</div><div className="text-[10px] text-slate-500 mt-1">Ronali Mohanty · admin@campuslink.local · +91 98765 10003</div>
             </div>
             <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 space-y-1">
               <div>• <strong>Access Scope:</strong> Cross-College Multi-Tenant Authority</div>
