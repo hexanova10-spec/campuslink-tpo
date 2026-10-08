@@ -1,3 +1,28 @@
+const TPO_TOKEN_KEY = 'campuslink_tpo_jwt';
+
+async function tpoFetch(path: string, init: RequestInit = {}) {
+  let token = localStorage.getItem(TPO_TOKEN_KEY);
+  if (!token) {
+    const session = await fetch('/api/tpo/auth/dev-session', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tpoId:'user-tpo-apex',institutionId:'campuslink'}) });
+    if (!session.ok) throw new Error(`TPO session bootstrap failed: ${session.status}`);
+    const data = await session.json(); token = data.token; localStorage.setItem(TPO_TOKEN_KEY, token);
+  }
+  const headers = new Headers(init.headers || {}); headers.set('Authorization', `Bearer ${token}`);
+  let res = await fetch(path, {...init,headers});
+  if (res.status === 401) {
+    localStorage.removeItem(TPO_TOKEN_KEY);
+    const session = await fetch('/api/tpo/auth/dev-session', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tpoId:'user-tpo-apex',institutionId:'campuslink'}) });
+    if (!session.ok) throw new Error(`TPO session bootstrap failed: ${session.status}`);
+    const data = await session.json();
+    token = data.token;
+    localStorage.setItem(TPO_TOKEN_KEY, token);
+    headers.set('Authorization', `Bearer ${token}`);
+    res = await fetch(path, {...init,headers});
+  }
+  if (!res.ok) throw new Error(`TPO API ${res.status}: ${path}`);
+  return res;
+}
+
 import {
   Institution,
   User,
@@ -43,7 +68,7 @@ import {
   INITIAL_AUDIT_LOGS
 } from '../data/initialData';
 
-const STORAGE_KEY = 'campuslink_tpo_state_v1';
+const STORAGE_KEY = 'campuslink_tpo_state_v2';
 
 export interface StorageState {
   institutions: Institution[];
@@ -98,7 +123,37 @@ class RepositoryService {
 
   constructor() {
     this.state = this.load();
+    void this.hydrateFromBackend();
+    window.setInterval(() => void this.hydrateFromBackend(), 3000);
+    window.addEventListener('focus', () => void this.hydrateFromBackend());
   }
+
+  private async hydrateFromBackend() {
+    try {
+      const [students, companies, jobs, applications, drives, interviews, offers, logs, documents, profile] = await Promise.all([
+        tpoFetch('/api/tpo/students').then(r=>r.json()), tpoFetch('/api/tpo/companies').then(r=>r.json()),
+        tpoFetch('/api/tpo/jobs').then(r=>r.json()), tpoFetch('/api/tpo/applications').then(r=>r.json()),
+        tpoFetch('/api/tpo/drives').then(r=>r.json()), tpoFetch('/api/tpo/interviews').then(r=>r.json()),
+        tpoFetch('/api/tpo/offers').then(r=>r.json()), tpoFetch('/api/tpo/audit-logs').then(r=>r.json()), tpoFetch('/api/tpo/documents').then(r=>r.json()), tpoFetch('/api/tpo/profile').then(r=>r.json())
+      ]);
+      const collegeId='inst-apex-01';
+      this.state.students=(students.students||[]).map((s:any)=>({id:s.id,collegeId,campusId:collegeId,rollNumber:s.rollNumber||'',fullName:s.fullName||'',email:s.email||'',phone:s.phone||'',gender:s.gender||'OTHER',department:s.branch||'',branch:s.branch||'',graduationYear:s.graduationYear||0,cgpa:Number(s.cgpa||0),tenthPercentage:0,twelfthPercentage:0,activeBacklogs:0,historyOfBacklogs:0,readinessLevel:'PLACEMENT_READY',placementStatus:'UNPLACED',primarySkills:[],secondarySkills:[],certifications:[],isFlaggedAtRisk:false,riskScore:0,totalApplications:0,totalRejections:0,totalInterviews:0,profileCompletion:0,resumeVerified:false,placementWillingness:true,optedDreamJob:false} as Student));
+      this.state.companies=(companies.companies||[]).map((x:any)=>({id:x.id,name:x.name,industry:x.industry||'',tier:'TIER_3_MASS',website:x.website||'',hqLocation:(x.locations||[])[0]||'',status:'APPROVED',minCgpaPreference:0,averagePackageLPA:0,highestPackageLPA:0,totalHiredOverall:0,totalHiredCurrentBatch:0,partnerSince:new Date().getFullYear(),collegePartnerships:[collegeId]} as Company));
+      this.state.jobs=(jobs.jobs||[]).map((j:any)=>({id:j.id,companyId:j.company_id,collegeId,title:j.title,roleType:'FULL_TIME',ctcLPA:Number(j.ctc_max_lpa||j.ctc_min_lpa||0),location:j.location||'',description:j.description||'',eligibilityCriteria:{minCgpa:Number(j.min_cgpa||0),eligibleBranches:j.eligible_branches||[],allowedGraduationYears:j.graduation_year?[j.graduation_year]:[],maxBacklogs:Number(j.max_backlogs_allowed||0),tenthMinPercent:0,twelfthMinPercent:0,requiredSkills:j.required_skills||[],preferredSkills:j.preferred_skills||[]},openings:Number(j.openings||1),status:j.status||'PENDING_TPO_REVIEW',applicationDeadline:j.deadline||'',totalApplied:0,totalShortlisted:0,totalOffered:0} as Job));
+      this.state.applications=(applications.applications||[]).map((a:any)=>({id:a.id,studentId:a.student_id,jobId:a.job_id,collegeId,companyId:a.company_id,appliedAt:a.applied_at,isEligible:true,aiMatchScore:0,skillMatchPercentage:0,skillGaps:[],tpoVerified:true,status:a.status==='INTERVIEW'?'INTERVIEW_SCHEDULED':a.status} as Application));
+      this.state.drives=(drives.drives||[]).map((d:any)=>({id:d.id,collegeId,campusId:collegeId,companyId:d.company_id,jobId:d.job_id||'',driveName:d.drive_title,date:d.drive_date||'',startTime:d.time_slot||'',endTime:'',venue:d.campus_name||'',status:d.tpo_approval_status==='APPROVED'?'APPROVED':'PENDING_APPROVAL',rounds:[],panelistsCount:0,infrastructureCapacity:0,registeredCandidatesCount:d.target_candidate_count||0,shortlistedCandidatesCount:0,offersMadeCount:0,coordinatingTpoId:'user-tpo-apex'} as PlacementDrive));
+      this.state.interviews=(interviews.interviews||[]).map((i:any)=>({id:i.id,collegeId,driveId:'',jobId:i.job_id||'',studentId:i.student_id||'',roundNumber:i.round_number||1,roundName:i.round_name||'Interview',scheduledTime:i.scheduled_time||'',venueOrRoom:i.meeting_link||i.mode||'',panelistName:i.interviewer_name||'',attendanceStatus:'SCHEDULED',resultStatus:i.decision==='CLEARED'?'CLEARED':i.decision==='REJECTED'?'REJECTED':'PENDING',feedbackNotes:i.notes||''} as Interview));
+      this.state.offers=(offers.offers||[]).map((o:any)=>({id:o.id,collegeId,studentId:o.student_id,companyId:o.company_id,jobId:o.job_id||'',designation:o.role||o.jobTitle||'',ctcLPA:Number(o.total_ctc_lpa||o.fixed_ctc_lpa||0),offerDate:o.created_at,acceptanceDeadline:o.valid_until||'',status:o.status==='ISSUED'?'OFFERED':o.status,statusUpdatedAt:o.created_at,isDreamOffer:false,joiningDate:o.joining_date||'',joiningLocation:o.location||''} as Offer));
+      this.state.documents=(documents.documents||[]).map((d:any)=>({id:d.id,collegeId:'inst-apex-01',studentId:d.studentId,documentType:(d.documentType||'RESUME').toUpperCase().replace(' ','_') as any,title:d.title,fileSize:'',fileUrl:d.fileUrl,uploadDate:d.uploadedAt,status:d.status==='Verified'?'VERIFIED':d.status==='Rejected'?'REJECTED':'PENDING',rejectionReason:d.rejectionReason} as PlacementDocument));
+      const p=profile.profile;
+      const current=this.state.users.find(u=>u.id===this.state.currentUserId);
+      if(p&&current){current.name=p.name||current.name;current.email=p.email||current.email;current.avatar=p.avatarUrl||current.avatar;current.department=p.department||current.department;}
+      this.state.auditLogs=(logs.logs||[]).map((l:any)=>({id:l.id,collegeId,userId:l.recruiter_id||'',userName:'CampusLink',userRole:'COLLEGE_TPO',action:'ADMIN_CONFIG_UPDATE',resourceType:l.entity_type||'Audit',resourceId:l.entity_id||'',details:l.details||'',ipAddress:'backend',timestamp:l.created_at} as AuditLog));
+      this.save();
+    } catch (error) { console.warn('TPO backend unavailable; retaining local development data', error); }
+  }
+
+
 
   private load(): StorageState {
     try {
@@ -136,6 +191,18 @@ class RepositoryService {
   }
 
   // Current session & auth context
+  public async updateTpoProfile(updates: {name?:string;email?:string;phone?:string;department?:string;bio?:string;avatarUrl?:string}) {
+    const token = localStorage.getItem(TPO_TOKEN_KEY);
+    if (!token) throw new Error('TPO session is not initialized');
+    const res = await tpoFetch('/api/tpo/profile', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(updates)});
+    const data = await res.json();
+    const p=data.profile;
+    const user=this.state.users.find(u=>u.id===this.state.currentUserId);
+    if(user&&p){user.name=p.name||user.name;user.email=p.email||user.email;user.avatar=p.avatarUrl||user.avatar;user.department=p.department||user.department;}
+    this.save();
+    return p;
+  }
+
   public getCurrentUser(): User {
     const user = this.state.users.find(u => u.id === this.state.currentUserId);
     return user || this.state.users[0];
@@ -151,6 +218,20 @@ class RepositoryService {
       details: `Switched session to ${user.name} (${user.role})`
     });
     this.save();
+    void (async () => {
+      try {
+        const session = await fetch('/api/tpo/auth/dev-session', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({tpoId:userId,institutionId:user.institutionId||'campuslink'})
+        });
+        if (session.ok) {
+          const data=await session.json();
+          localStorage.setItem(TPO_TOKEN_KEY,data.token);
+          await this.hydrateFromBackend();
+        }
+      } catch (error) { console.warn('TPO session switch sync failed', error); }
+    })();
   }
 
   public setSelectedCollegeFilter(collegeId?: string) {
@@ -246,21 +327,21 @@ class RepositoryService {
 
   // 2. JOBS & REVIEWS
   public getJobs(): Job[] {
-    const user = this.getCurrentUser();
-    if (user.role === 'COLLEGE_TPO') {
-      return this.state.jobs.filter(j => j.collegeId === user.institutionId);
-    }
-    if (this.state.selectedCollegeIdFilter) {
-      return this.state.jobs.filter(j => j.collegeId === this.state.selectedCollegeIdFilter);
-    }
-    return this.state.jobs;
+    // /api/tpo/jobs is already scoped by the authenticated TPO session.
+    // Do not re-filter hydrated backend jobs against legacy demo institution IDs.
+    if (this.state.jobs.length) return this.state.jobs;
+    return [];
   }
 
-  public updateJobStatus(jobId: string, status: JobStatus, notes?: string) {
+  public async updateJobStatus(jobId: string, status: JobStatus, notes?: string) {
     const user = this.getCurrentUser();
     const job = this.state.jobs.find(j => j.id === jobId);
     if (!job) return;
-
+    try {
+      await tpoFetch('/api/tpo/jobs/' + encodeURIComponent(jobId) + '/status', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status: status === 'APPROVED' ? 'ACTIVE' : status, notes})});
+      await this.hydrateFromBackend();
+      return;
+    } catch {}
     job.status = status;
     job.reviewNotes = notes;
     job.reviewedByTpoId = user.id;
@@ -462,7 +543,7 @@ class RepositoryService {
     return this.state.documents;
   }
 
-  public verifyDocument(docId: string, status: VerificationStatus, reason?: string) {
+  public async verifyDocument(docId: string, status: VerificationStatus, reason?: string) {
     const user = this.getCurrentUser();
     const doc = this.state.documents.find(d => d.id === docId);
     if (doc) {
@@ -471,6 +552,12 @@ class RepositoryService {
       doc.verifiedAt = new Date().toISOString();
       doc.rejectionReason = reason;
 
+      try {
+        await tpoFetch(`/api/tpo/documents/${docId}/verify`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,reason})});
+      } catch (error) {
+        console.error('Document verification sync failed', error);
+        return;
+      }
       this.logAudit({
         action: 'DOCUMENT_VERIFICATION',
         resourceType: 'Document',
