@@ -155,27 +155,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onSelectScreen 
       {/* Frosted Transparent Backdrop */}
       <div
         onClick={() => setSidebarOpen(false)}
-        className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in"
       />
 
       {/* Slide-over Navigation Drawer */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 w-80 max-w-[85vw] flex flex-col shadow-2xl select-none transition-all duration-300 animate-in slide-in-from-left border-r ${
+        className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] flex flex-col shadow-2xl backdrop-blur-2xl transition-transform animate-in slide-in-from-left duration-200 border-r ${
           isDark
-            ? 'bg-slate-950/85 backdrop-blur-2xl border-r border-blue-500/20 text-slate-100 shadow-2xl'
-            : 'bg-white/90 backdrop-blur-2xl border-r border-blue-200/80 text-slate-800 shadow-blue-900/10'
+            ? 'bg-[#0B1530] border-[#1E3A6B] text-[#F8FAFC]'
+            : 'bg-white border-[#D9E2F2] text-[#101A3A]'
         }`}
       >
         {/* Drawer Header */}
         <div
-          className={`px-5 py-4 border-b flex items-center justify-between ${
-            isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200/80 bg-gradient-to-r from-blue-50/70 to-white/70'
+          className={`p-4 border-b flex items-center justify-between ${
+            isDark ? 'bg-[#060E22] border-[#1E3A6B]' : 'bg-[#F8FAFF] border-[#D9E2F2]'
           }`}
         >
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-              <span className="text-xs font-black tracking-wider uppercase text-blue-600">
+              <span className="w-2 h-2 rounded-full bg-[#3155E7] animate-ping" />
+              <span className="text-xs font-black tracking-wider uppercase text-[#3155E7]">
                 All 36 Screens Directory
               </span>
             </div>
@@ -198,17 +198,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onSelectScreen 
         </div>
 
         {/* Scrollable Navigation Groups */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-5 scrollbar-thin">
+        <nav className="p-3 space-y-5 flex-1 overflow-y-auto">
           {/* Admin Group if Admin */}
           {isAdmin && (
             <div>
-              <div className="px-3 text-[10px] font-black uppercase tracking-wider font-mono text-[#10B981] flex items-center justify-between">
+              <div className="text-[10px] font-black uppercase px-2.5 py-1 tracking-wider text-[#10B981] flex items-center justify-between">
                 <span>{adminNavigationGroup.label}</span>
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 font-mono font-bold">
                   SCREENS 28-36
                 </span>
               </div>
-              <div className="mt-1 space-y-1">
+              <div className="mt-1 space-y-0.5">
                 {adminNavigationGroup.items.map(item => {
                   const Icon = item.icon;
                   const isActive = currentScreen === item.id;
@@ -216,12 +216,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onSelectScreen 
                     <button
                       key={item.id}
                       onClick={() => handleSelect(item.id)}
-                      className={`w-full flex items-center justify-between w-full flex items-center justify-between px-3.5 py-2.5 text-xs rounded-xl transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
                         isActive
-                          ? 'bg-[#3155E7] text-white shadow-lg shadow-blue-600/30 translate-x-1 text-white'
+                          ? 'bg-[#3155E7] text-white shadow-md text-white-force'
                           : isDark
-                          ? 'text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium'
-                          : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50/80 font-medium'
+                          ? 'text-slate-200 hover:bg-[#101C3A] hover:text-white'
+                          : 'text-slate-700 hover:bg-[#F8FAFF] hover:text-[#3155E7]'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
@@ -242,7 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onSelectScreen 
               <div className="text-[10px] font-black uppercase px-2.5 py-1 tracking-wider text-[#3155E7]">
                 {group.label}
               </div>
-              <div className="mt-1 space-y-1">
+              <div className="mt-0.5 space-y-0.5">
                 {group.items.map(item => {
                   const Icon = item.icon;
                   const isActive = currentScreen === item.id;
